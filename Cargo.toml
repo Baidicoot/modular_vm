@@ -1,7 +1,23 @@
 [package]
-name = "modular_vm"
+name = "modVM"
 version = "0.2.0"
 authors = ["aidan <aidanprattewart@icloud.com>"]
 edition = "2018"
+
+description = "A framework for easily creating modular VMs."
+
+documentation = "https://github.com/Baidicoot/modular_vm"
+homepage = "https://github.com/Baidicoot/modular_vm"
+repository = "https://github.com/Baidicoot/modular_vm"
+
+readme = "README.md"
+
+keywords = ["simulation", "virtual", "machine", "framework"]
+
+categorys = ["simulation", "emulators"]
+
+license = "MIT"
+
+license_file = "LISCENSE"
 
 [dependencies]

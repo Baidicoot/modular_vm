@@ -1,8 +1,8 @@
 #![feature(duration_as_u128)]
-extern crate modular_vm;
+extern crate modVM;
 
-use modular_vm::*;
-use modular_vm::machines::Machine;
+use modVM::*;
+use modVM::machines::Machine;
 use self::Query::*;
 use self::Response::*;
 
@@ -20,7 +20,7 @@ struct BrainF {
     requests: u128,
 }
 
-impl modular_vm::Processor<u16> for BrainF {
+impl Processor<u16> for BrainF {
     fn metadata(&self) -> Metadata {
         Metadata {
             model: String::from("BrainF Processor v.1.0.0"),

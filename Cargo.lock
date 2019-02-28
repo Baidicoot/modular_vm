@@ -1,4 +1,4 @@
 [[package]]
-name = "modular_vm"
+name = "modVM"
 version = "0.2.0"
 
