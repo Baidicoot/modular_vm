@@ -2,6 +2,8 @@ use std::sync::mpsc::{self, *};
 
 pub mod machines;
 
+pub use self::machines::Machine;
+
 /* The Main datatypes for modular_vm */
 
 #[derive(Debug)]
