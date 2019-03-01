@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::sync::mpsc::{self, *};
 
 pub mod machines;
@@ -76,13 +79,27 @@ pub type FrontEnd<BASE> = TwoWayChannel<Query<BASE>, Response<BASE>>;
 
 pub type BackEnd<BASE> = TwoWayChannel<Response<BASE>, Query<BASE>>;
 
+/* Peripherals and Processors for a normal machine */
+
 pub trait Peripheral<BASE> {
-    fn handle(&mut self, incoming: Query<BASE>) -> Response<BASE>;
+    fn handle(&mut self, incoming: Query<BASE>) -> Result<Response<BASE>, BASE>;
 
     fn metadata(&self) -> Metadata {
         Metadata {
             model: String::from("Peripheral"),
         }
+    }
+
+    fn cycle(&mut self) -> Result<(), BASE> {
+        Ok(())
+    }
+
+    fn boot(&mut self) -> Result<(), BASE> {
+        Ok(())
+    }
+
+    fn halt(&mut self) -> Result<(), BASE> {
+        Ok(())
     }
 }
 
@@ -93,5 +110,57 @@ pub trait Processor<BASE> {
         Metadata {
             model: String::from("Processor"),
         }
+    }
+
+    fn boot(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
+    }
+
+    fn halt(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
+    }
+}
+
+/* Processors for a Processor Network machine */
+
+pub trait ProcessorNode<BASE> {
+    fn exe_ins(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE>;
+
+    fn metadata(&self) -> Metadata {
+        Metadata {
+            model: String::from("ProcessorNode"),
+        }
+    }
+
+    fn handle(&mut self, incoming: Query<BASE>) -> Result<Response<BASE>, BASE>;
+
+    fn boot(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
+    }
+
+    fn halt(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
+    }
+}
+
+/* Nodes for a Node Network machine */
+
+pub trait Node<BASE> {
+    fn cycle(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE>;
+
+    fn handle(&mut self, incoming: Query<BASE>) -> Result<Response<BASE>, BASE>;
+
+    fn metadata(&self) -> Metadata {
+        Metadata {
+            model: String::from("Node"),
+        }
+    }
+
+    fn boot(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
+    }
+
+    fn halt(&mut self, channels: &Vec<FrontEnd<BASE>>) -> Result<(), BASE> {
+        Ok(())
     }
 }

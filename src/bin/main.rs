@@ -180,8 +180,8 @@ impl Peripheral<u16> for MemT1 {
         }
     }
 
-    fn handle(&mut self, incoming: Query<u16>) -> Response<u16> {
-        match incoming {
+    fn handle(&mut self, incoming: Query<u16>) -> Result<Response<u16>, u16> {
+        Ok(match incoming {
             LoadRequest(x) => {
                 match self.mem.get(x as usize) {
                     Some(y) => {
@@ -199,7 +199,7 @@ impl Peripheral<u16> for MemT1 {
                     None => Fail(0),
                 }
             },
-        }
+        })
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::*;
 use std::thread;
 use std::thread::JoinHandle;
+use std::fmt::Display;
 
 /* A collection of functions for running machines */
 
@@ -38,14 +39,14 @@ fn pairs<A, B>(input: Vec<Vec<(A, B)>>) -> Result<(Vec<Vec<A>>, Vec<Vec<B>>), &'
 }
 
 pub struct Machine<BASE>
-    where BASE: 'static + Send,
+    where BASE: 'static + Send + Display,
 {
     peripherals: Vec<Box<dyn Peripheral<BASE> + Send>>,
     processors: Vec<Box<dyn Processor<BASE> + Send>>,
 }
 
 impl<BASE> Machine<BASE>
-    where BASE: std::fmt::Display + Send,
+    where BASE: Display + Send,
 
 {
     pub fn from(peripherals: Vec<Box<dyn Peripheral<BASE> + Send>>, processors: Vec<Box<dyn Processor<BASE> + Send>>) -> Machine<BASE> {
@@ -74,10 +75,29 @@ impl<BASE> Machine<BASE>
             peripheral_handles.push(thread::Builder::new()
                 .name(format!("Peripheral Number {}: {}", no, component.metadata().model))
                 .spawn(move || {
+                    match component.boot() {
+                        Ok(_) => {},
+                        Err(x) => {
+                            println!("`{}` failed to boot with error: {}", thread::current().name().unwrap(), x);
+                            return
+                        }
+                    }
                     loop {
                         for channel in channels.iter() {
                             if let Ok(query) = channel.try_recv() {
-                                channel.send(component.handle(query)).unwrap();
+                                match component.handle(query) {
+                                    Err(x) => {
+                                        match component.halt() {
+                                            Ok(_) => {},
+                                            Err(x) => {
+                                                println!("`{}` failed to shutdown with error: {}", thread::current().name().unwrap(), x);
+                                                return
+                                            }
+                                        }
+                                        println!("`{}` terminated with code: {}", thread::current().name().unwrap(), x);
+                                    }
+                                    Ok(x) => channel.send(x).unwrap(),
+                                }
                             } else {
                                 continue
                             }
@@ -94,12 +114,26 @@ impl<BASE> Machine<BASE>
             processor_handles.push(thread::Builder::new()
                 .name(format!("Processor Number {}: {}", no, component.metadata().model))
                 .spawn(move || {
+                    match component.boot(&channels) {
+                        Ok(_) => {},
+                        Err(x) => {
+                            println!("`{}` failed to boot with error: {}", thread::current().name().unwrap(), x);
+                            return
+                        }
+                    }
                     loop {
                         match component.exe_ins(&channels) {
                             Ok(()) => {},
                             Err(x) => {
-                                println!("`{}` exited with code: {}", thread::current().name().unwrap(), x);
-                                break
+                                match component.halt(&channels) {
+                                    Ok(_) => {},
+                                    Err(y) => {
+                                        println!("`{}` failed to halt with error: {}", thread::current().name().unwrap(), x);
+                                        return
+                                    }
+                                }
+                                println!("`{}` terminated with code: {}", thread::current().name().unwrap(), x);
+                                return
                             }
                         }
                     }
@@ -112,6 +146,48 @@ impl<BASE> Machine<BASE>
             peripheral_handles,
             processor_handles,
         })
+    }
+}
+
+pub struct ProcessorNetwork<BASE>
+    where BASE: 'static + Send + Display,
+{
+    peripherals: Vec<Box<dyn Peripheral<BASE> + Send>>,
+    processors: Vec<Box<dyn ProcessorNode<BASE> + Send>>,
+}
+
+impl<BASE> ProcessorNetwork<BASE>
+    where BASE: Display + Send,
+{
+    pub fn from(peripherals: Vec<Box<dyn Peripheral<BASE> + Send>>, processors: Vec<Box<dyn ProcessorNode<BASE> + Send>>) -> ProcessorNetwork<BASE> {
+        ProcessorNetwork {
+            peripherals,
+            processors,
+        }
+    }
+
+    pub fn run(self) -> Result<MachineHandle, &'static str> {
+        unimplemented!()
+    }
+}
+
+pub struct NodeMachine<BASE>
+    where BASE: Display + Send
+{
+    nodes: Vec<Box<dyn Node<BASE> + Send>>,
+}
+
+impl<BASE> NodeMachine<BASE>
+    where BASE: Display + Send
+{
+    pub fn from(nodes: Vec<Box<dyn Node<BASE> + Send>>) -> NodeMachine<BASE> {
+        NodeMachine {
+            nodes,
+        }
+    }
+
+    pub fn run(self) -> NodeHandle {
+        unimplemented!()
     }
 }
 
@@ -138,6 +214,18 @@ impl MachineHandle {
 
     pub fn join_peripherals(self) {
         for handle in self.peripheral_handles.into_iter() {
+            handle.join().unwrap();
+        }
+    }
+}
+
+pub struct NodeHandle {
+    handles: Vec<JoinHandle<()>>,
+}
+
+impl NodeHandle {
+    pub fn join(self) {
+        for handle in self.handles.into_iter() {
             handle.join().unwrap();
         }
     }
