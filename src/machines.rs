@@ -102,6 +102,19 @@ impl<BASE> Machine<BASE>
                                 continue
                             }
                         }
+                        match component.cycle() {
+                            Ok(_) => {},
+                            Err(x) => {
+                                match component.halt() {
+                                    Ok(_) => {},
+                                    Err(x) => {
+                                        println!("`{}` failed to shutdown with error: {}", thread::current().name().unwrap(), x);
+                                        return
+                                    }
+                                }
+                                println!("`{}` terminated with code: {}", thread::current().name().unwrap(), x);
+                            }
+                        }
                     }
                 })
                 .unwrap()
